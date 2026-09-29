@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Logikblöcke">
+<title>Logikblöcke</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --table:#c9d3b7; --table-deep:#b5c0a0; --rail:#6b4a2e; --rail-ink:#fdf6e8;
+  --ink:#1d2b22; --paper:#fffdf7; --btn:#fffdf7; --btn-ink:#1d2b22; --go:#1f5fbf; --go-ink:#fff;
+  --rope1:#9a6b3a; --rope2:#2f7d6d; --rope3:#8a4f7d; --ringc:#1d2b22; --scrim:rgba(30,40,32,.55);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --table:#26302a; --table-deep:#1d251f; --rail:#3b2b1d; --rail-ink:#f3e9d6;
+    --ink:#e8eee2; --paper:#f7f2e5; --btn:#34403a; --btn-ink:#eef3ea; --go:#4a86e8; --go-ink:#fff;
+    --rope1:#c58f55; --rope2:#4fb29d; --rope3:#bd7fae; --ringc:#f7f2e5; --scrim:rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --table:#26302a; --table-deep:#1d251f; --rail:#3b2b1d; --rail-ink:#f3e9d6;
+  --ink:#e8eee2; --paper:#f7f2e5; --btn:#34403a; --btn-ink:#eef3ea; --go:#4a86e8; --go-ink:#fff;
+  --rope1:#c58f55; --rope2:#4fb29d; --rope3:#bd7fae; --ringc:#f7f2e5; --scrim:rgba(0,0,0,.6);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0}
+body{
+  background:var(--table); color:var(--ink);
+  font-family:"Andika","Trebuchet MS",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  overflow:hidden; overscroll-behavior:none;
+}
+.app{height:100%;display:flex;flex-direction:column}
+.rail{
+  background:var(--rail); color:var(--rail-ink);
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:10px max(14px,env(safe-area-inset-left,0px)) 10px max(14px,env(safe-area-inset-right,0px));
+  box-shadow:0 3px 0 rgba(0,0,0,.18);
+}
+.levels{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+.lv{
+  width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.35);
+  background:transparent;color:var(--rail-ink);font:700 16px/1 inherit;font-family:inherit;cursor:pointer;
+}
+.lv.done{background:rgba(255,255,255,.18)}
+.lv.cur{background:var(--rail-ink);color:var(--rail);border-color:var(--rail-ink)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  min-height:48px;padding:0 16px;border-radius:24px;border:0;
+  background:var(--btn);color:var(--btn-ink);font:700 18px/1 inherit;font-family:inherit;
+  display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+  box-shadow:0 3px 0 rgba(0,0,0,.25);
+}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.btn.go{background:var(--go);color:var(--go-ink);padding:0 22px}
+.btn .ic{font-size:22px}
+button:focus-visible{outline:3px solid #ffd54a;outline-offset:2px}
+.table{flex:1;min-height:0;position:relative;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,.08) 0 2px, transparent 3px) 0 0/23px 23px,
+    radial-gradient(circle at 70% 80%, rgba(0,0,0,.05) 0 2px, transparent 3px) 0 0/31px 31px,
+    var(--table);
+}
+svg#field{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.rope-fill{opacity:.13}
+.rope{fill:none;stroke-width:11}
+.twist{fill:none;stroke:#fff;stroke-opacity:.4;stroke-width:3.5;stroke-dasharray:8 9;stroke-linecap:round}
+.tag{fill:none;stroke-width:3;stroke-dasharray:2 7;stroke-linecap:round}
+.card{cursor:pointer}
+.card rect{fill:var(--paper)}
+.block{cursor:grab}
+.lift{transition:transform .12s ease;transform-box:fill-box;transform-origin:center}
+.block.dragging .lift{transform:scale(1.12)}
+.body{transform-box:fill-box;transform-origin:center}
+.ring{fill:none;stroke:var(--ringc);stroke-width:4;stroke-dasharray:6 5;opacity:0;transition:opacity .2s}
+.block.wrong .ring{opacity:1}
+.block.wrong .body{animation:wiggle .5s ease 2}
+.block.hint .ring{opacity:1;animation:pulse .7s ease-in-out 3}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+@keyframes pulse{0%,100%{stroke-width:4}50%{stroke-width:9}}
+.toast{
+  position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);
+  background:var(--rail);color:var(--rail-ink);padding:12px 20px;border-radius:14px;font-size:19px;font-weight:700;
+  opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.overlay{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:20px;z-index:5}
+.overlay[hidden]{display:none}
+.panel{background:var(--paper);color:#1d2b22;border-radius:22px;padding:28px 30px;max-width:560px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.panel h2{margin:.2em 0 .4em;font-size:30px}
+.panel p{font-size:18px;line-height:1.5;margin:.5em 0;text-align:left}
+.stars{font-size:64px;letter-spacing:6px}
+.panel .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.panel .btn{background:#eee6d4;color:#1d2b22}
+.panel .btn.go{background:#1f5fbf;color:#fff}
+@media (prefers-reduced-motion: reduce){
+  .block.wrong .body,.block.hint .ring{animation:none}
+  .lift,.toast{transition:none}
+}
+@media (max-width:760px){.btn .lbl{display:none}.btn{padding:0 14px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="rail">
+    <nav class="levels" id="levels" aria-label="Aufgaben"></nav>
+    <div class="actions">
+      <button class="btn" id="hear" aria-label="Aufgabe vorlesen"><span class="ic">🔊</span><span class="lbl">Hören</span></button>
+      <button class="btn" id="hint" aria-label="Tipp"><span class="ic">💡</span><span class="lbl">Tipp</span></button>
+      <button class="btn" id="shuffle" aria-label="Blöcke neu hinlegen"><span class="ic">↺</span><span class="lbl">Neu legen</span></button>
+      <button class="btn go" id="check"><span class="ic">✓</span><span class="lbl">Prüfen</span></button>
+      <button class="btn" id="help" aria-label="Hilfe für Eltern"><span class="ic">?</span></button>
+    </div>
+  </header>
+  <main class="table">
+    <svg id="field" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet" aria-label="Spieltisch">
+      <g id="lCircles"></g><g id="lCards"></g><g id="lBlocks"></g>
+    </svg>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<div class="overlay" id="win" hidden>
+  <div class="panel">
+    <div class="stars">⭐⭐⭐</div>
+    <h2>Alles richtig sortiert!</h2>
+    <div class="row">
+      <button class="btn" id="again">↺ Nochmal legen</button>
+      <button class="btn go" id="next">Nächste Aufgabe ▶</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="helpBox" hidden>
+  <div class="panel">
+    <h2>So geht's</h2>
+    <p>Die Kärtchen am Kreis sagen, welche Blöcke hinein gehören. Ein Tipp auf ein Kärtchen liest es vor, 🔊 liest die ganze Aufgabe vor.</p>
+    <p>Durchgestrichene Kärtchen bedeuten „nicht“. Stehen zwei Kärtchen an einem Kreis, muss beides stimmen. Blöcke, die in zwei Kreise gehören, kommen in die Mitte, wo sich die Kreise überschneiden.</p>
+    <p>Alle anderen Blöcke bleiben draußen liegen. Mit ✓ prüft das Kind selbst; falsch liegende Blöcke wackeln.</p>
+    <p>Merkmale: 3 Farben, 4 Formen, groß oder klein, dick oder dünn. Die Würfel-Taste erzeugt Zufallsaufgaben. Am besten das iPad quer halten.</p>
+    <div class="row"><button class="btn go" id="helpClose">Los geht's</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+const NS='http://www.w3.org/2000/svg', W=1200, H=800;
+const COL={rot:'#d8342c',blau:'#1f5fbf',gelb:'#f1b81c'};
+const DARK={rot:'#8c1c16',blau:'#10397a',gelb:'#a97b06'};
+const COLORS=['rot','blau','gelb'], SHAPES=['kreis','quadrat','dreieck','rechteck'];
+const ATTRS={color:COLORS,shape:SHAPES,size:['gross','klein'],thick:['dick','duenn']};
+const ROPES=['rope1','rope2','rope3'], ROPE_NAMES=['braunen','grünen','lila'];
+const BLOB='M -26 -6 C -28 -26, -4 -32, 8 -24 C 26 -30, 32 -8, 24 6 C 30 24, 6 30, -6 24 C -26 28, -30 12, -26 -6 Z';
+
+const PH={
+  color:{rot:['rot sind','nicht rot sind','rot','nicht rot'],blau:['blau sind','nicht blau sind','blau','nicht blau'],gelb:['gelb sind','nicht gelb sind','gelb','nicht gelb']},
+  shape:{kreis:['rund sind','nicht rund sind','rund','nicht rund'],quadrat:['Quadrate sind','keine Quadrate sind','Quadrat','kein Quadrat'],dreieck:['Dreiecke sind','keine Dreiecke sind','Dreieck','kein Dreieck'],rechteck:['Rechtecke sind','keine Rechtecke sind','Rechteck','kein Rechteck']},
+  size:{gross:['groß sind','nicht groß sind','groß','nicht groß'],klein:['klein sind','nicht klein sind','klein','nicht klein']},
+  thick:{dick:['dick sind','nicht dick sind','dick','nicht dick'],duenn:['dünn sind','nicht dünn sind','dünn','nicht dünn']}
+};
+
+const LAYOUTS={
+  one:{circles:[{x:600,y:450,r:250}],cards:[{x:600,y:118}]},
+  sep:{circles:[{x:330,y:460,r:215},{x:870,y:460,r:215}],cards:[{x:330,y:165},{x:870,y:165}]},
+  over:{circles:[{x:480,y:460,r:240},{x:720,y:460,r:240}],cards:[{x:320,y:140},{x:880,y:140}]},
+  three:{circles:[{x:480,y:360,r:195},{x:720,y:360,r:195},{x:600,y:570,r:195}],cards:[{x:245,y:110},{x:955,y:110},{x:960,y:720}]}
+};
+
+// c: list of circles, each a list of cards [attr, value, not?]
+const LEVELS=[
+  {lay:'one',set:12,c:[[['color','rot']]]},
+  {lay:'one',set:12,c:[[['shape','dreieck']]]},
+  {lay:'one',set:12,c:[[['color','blau',1]]]},
+  {lay:'sep',set:12,c:[[['color','rot']],[['color','gelb']]]},
+  {lay:'sep',set:12,c:[[['shape','kreis']],[['shape','quadrat']]]},
+  {lay:'one',set:24,c:[[['size','klein']]]},
+  {lay:'over',set:24,c:[[['color','blau']],[['shape','kreis']]]},
+  {lay:'over',set:24,c:[[['color','gelb']],[['size','gross']]]},
+  {lay:'one',set:24,c:[[['color','rot'],['shape','kreis',1]]]},
+  {lay:'over',set:48,c:[[['thick','dick']],[['shape','quadrat']]]},
+  {lay:'over',set:48,c:[[['color','rot',1]],[['size','gross',1]]]},
+  {lay:'three',set:48,c:[[['color','rot']],[['size','gross']],[['shape','dreieck']]]}
+];
+
+const $=id=>document.getElementById(id);
+const svg=$('field'), lC=$('lCircles'), lK=$('lCards'), lB=$('lBlocks');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+let levelIdx=store.get('lb-level',0); if(typeof levelIdx!=='number'||levelIdx<-1||levelIdx>=LEVELS.length) levelIdx=0;
+let done=new Set(store.get('lb-done',[]));
+let task=null, blocks=[];
+
+function rnd(a,b){return a+Math.random()*(b-a)}
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function makeSet(n){
+  const out=[];
+  for(const color of COLORS)for(const shape of SHAPES)for(const size of (n>=24?['gross','klein']:['gross']))for(const thick of (n>=48?['dick','duenn']:['dick']))
+    out.push({color,shape,size,thick});
+  return out;
+}
+function matches(b,cards){return cards.every(([a,v,not])=>(b[a]===v)!==!!not)}
+
+function randomTask(){
+  for(let tries=0;tries<200;tries++){
+    const lay=pick(['one','sep','over','over','three']);
+    const set=lay==='three'?48:pick([24,48]);
+    const attrs=set===48?['color','shape','size','thick']:['color','shape','size'];
+    let c;
+    if(lay==='sep'){
+      const a=pick(['color','shape']); const vs=shuffle(ATTRS[a].slice());
+      c=[[[a,vs[0]]],[[a,vs[1]]]];
+    }else{
+      const n=lay==='one'?1:lay==='over'?2:3;
+      const as=shuffle(attrs.slice()).slice(0,n);
+      c=as.map(a=>[[a,pick(ATTRS[a]),Math.random()<.25?1:0]]);
+      if(lay==='one'&&Math.random()<.5){
+        const a2=pick(attrs.filter(x=>x!==as[0]));
+        c[0].push([a2,pick(ATTRS[a2]),Math.random()<.3?1:0]);
+      }
+    }
+    const bs=makeSet(set);
+    const ok=c.every(cards=>{const k=bs.filter(b=>matches(b,cards)).length;return k>0&&k<bs.length});
+    if(ok) return {lay,set,c};
+  }
+  return LEVELS[0];
+}
+
+function shapeSVG(shape,s,style){
+  switch(shape){
+    case 'kreis': return `<circle r="${s/2}" ${style}/>`;
+    case 'quadrat': return `<rect x="${-s/2}" y="${-s/2}" width="${s}" height="${s}" rx="3" ${style}/>`;
+    case 'dreieck': return `<polygon points="0,${-s*.56} ${s*.6},${s*.48} ${-s*.6},${s*.48}" stroke-linejoin="round" ${style}/>`;
+    case 'rechteck': {const w=s*1.35,h=s*.72;return `<rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" rx="3" ${style}/>`;}
+  }
+}
+
+function cardSymbol([a,v,not]){
+  let g='';
+  if(a==='color') g=`<path d="${BLOB}" fill="${COL[v]}" stroke="${DARK[v]}" stroke-width="2"/>`;
+  else if(a==='shape') g=shapeSVG(v,44,'fill="none" stroke="#2b2b2b" stroke-width="5"');
+  else if(a==='size') g= v==='gross'
+    ? `<path d="${BLOB}" fill="#858a80" transform="scale(1.15)"/>`
+    : `<path d="${BLOB}" fill="none" stroke="#858a80" stroke-width="2.5" stroke-dasharray="5 4" transform="scale(1.15)"/><path d="${BLOB}" fill="#858a80" transform="scale(.5)"/>`;
+  else if(a==='thick') g= v==='dick'
+    ? `<polygon points="-30,-6 -18,-18 32,-18 20,-6" fill="#bdc1b8"/><rect x="-30" y="-6" width="50" height="24" fill="#858a80"/><polygon points="20,-6 32,-18 32,6 20,18" fill="#62675e"/>`
+    : `<polygon points="-30,-2 -18,-14 32,-14 20,-2" fill="#bdc1b8"/><rect x="-30" y="-2" width="50" height="5" fill="#858a80"/><polygon points="20,-2 32,-14 32,-9 20,3" fill="#62675e"/>`;
+  if(not) g+=`<line x1="-31" y1="31" x2="31" y2="-31" style="stroke:var(--paper)" stroke-width="13" stroke-linecap="round"/><line x1="-31" y1="31" x2="31" y2="-31" stroke="#d11a1a" stroke-width="7" stroke-linecap="round"/>`;
+  return g;
+}
+
+function cardRects(lay,c){
+  return LAYOUTS[lay].cards.slice(0,c.length).map((p,i)=>{
+    const n=c[i].length, w=n*84+(n-1)*12;
+    return {x:p.x-w/2,y:p.y-42,w,h:84,cx:p.x,cy:p.y};
+  });
+}
+
+function scatter(n,lay,rects){
+  const L=LAYOUTS[lay], pts=[], step=74;
+  for(let y=48;y<=H-40;y+=step)for(let x=48;x<=W-44;x+=step){
+    let ok=true;
+    for(const c of L.circles) if(Math.hypot(x-c.x,y-c.y)<c.r+42){ok=false;break}
+    if(ok) for(const r of rects) if(x>r.x-44&&x<r.x+r.w+44&&y>r.y-44&&y<r.y+r.h+44){ok=false;break}
+    if(ok) pts.push([x,y]);
+  }
+  shuffle(pts);
+  const out=[];
+  for(let i=0;i<n;i++){
+    const p=pts[i%pts.length], extra=i>=pts.length?18:0;
+    out.push([p[0]+rnd(-7-extra,7+extra),p[1]+rnd(-7-extra,7+extra)]);
+  }
+  return out;
+}
+
+function blockSVG(b){
+  const s=b.size==='gross'?62:36;
+  const depth=b.thick==='dick'?(s>40?9:6):2;
+  let ext='';
+  for(let i=depth;i>=1;i--) ext+=`<g transform="translate(${i},${i})">${shapeSVG(b.shape,s,`fill="${DARK[b.color]}"`)}</g>`;
+  return `<circle r="${Math.max(34,s*.8)}" fill="transparent"/>
+    <g class="lift"><circle class="ring" r="${s*.86+4}"/><g class="body">${ext}${shapeSVG(b.shape,s,`fill="${COL[b.color]}" stroke="${DARK[b.color]}" stroke-width="1.5"`)}</g></g>`;
+}
+
+function render(){
+  const L=LAYOUTS[task.lay];
+  lC.innerHTML=''; lK.innerHTML=''; lB.innerHTML='';
+  const rects=cardRects(task.lay,task.c);
+  let h='';
+  task.c.forEach((cards,i)=>{
+    const c=L.circles[i], r=rects[i], rope=ROPES[i];
+    const dx=c.x-r.cx, dy=c.y-r.cy, d=Math.hypot(dx,dy);
+    const ex=c.x-dx/d*c.r, ey=c.y-dy/d*c.r;
+    h+=`<line class="tag" style="stroke:var(--${rope})" x1="${r.cx}" y1="${r.cy}" x2="${ex}" y2="${ey}"/>`;
+  });
+  task.c.forEach((cards,i)=>{
+    const c=L.circles[i], rope=ROPES[i];
+    h+=`<circle class="rope-fill" style="fill:var(--${rope})" cx="${c.x}" cy="${c.y}" r="${c.r}"/>`;
+  });
+  task.c.forEach((cards,i)=>{
+    const c=L.circles[i], rope=ROPES[i];
+    h+=`<circle class="rope" style="stroke:var(--${rope})" cx="${c.x}" cy="${c.y}" r="${c.r}"/><circle class="twist" cx="${c.x}" cy="${c.y}" r="${c.r}"/>`;
+  });
+  lC.innerHTML=h;
+  let k='';
+  task.c.forEach((cards,i)=>{
+    const r=rects[i], rope=ROPES[i];
+    cards.forEach((card,j)=>{
+      const x=r.x+42+j*96, y=r.cy;
+      k+=`<g class="card" data-i="${i}" data-j="${j}" transform="translate(${x},${y})" role="button" aria-label="${PH[card[0]][card[1]][card[2]?3:2]}">
+        <rect x="-42" y="-42" width="84" height="84" rx="14" style="stroke:var(--${rope})" stroke-width="5"/>${cardSymbol(card)}</g>`;
+    });
+  });
+  lK.innerHTML=k;
+  const set=makeSet(task.set), pos=scatter(set.length,task.lay,rects);
+  blocks=shuffle(set).map((b,i)=>{
+    const g=document.createElementNS(NS,'g');
+    g.setAttribute('class','block');
+    g.innerHTML=blockSVG(b);
+    b.x=pos[i][0]; b.y=pos[i][1]; b.el=g; g._b=b;
+    place(b); lB.appendChild(g);
+    return b;
+  });
+  renderLevels();
+}
+function place(b){b.el.setAttribute('transform',`translate(${b.x.toFixed(1)},${b.y.toFixed(1)})`)}
+
+function renderLevels(){
+  const nav=$('levels'); nav.innerHTML='';
+  LEVELS.forEach((_,i)=>{
+    const bt=document.createElement('button');
+    bt.className='lv'+(done.has(i)?' done':'')+(i===levelIdx?' cur':'');
+    bt.textContent=i+1; bt.setAttribute('aria-label','Aufgabe '+(i+1));
+    bt.onclick=()=>goLevel(i); nav.appendChild(bt);
+  });
+  const r=document.createElement('button');
+  r.className='lv'+(levelIdx===-1?' cur':''); r.textContent='🎲'; r.setAttribute('aria-label','Zufallsaufgabe');
+  r.onclick=()=>goLevel(-1); nav.appendChild(r);
+}
+
+function goLevel(i){
+  levelIdx=i; store.set('lb-level',i);
+  task=i===-1?randomTask():LEVELS[i];
+  $('win').hidden=true; render();
+}
+
+/* ---------- Sprache & Töne ---------- */
+function say(t){
+  try{
+    const s=window.speechSynthesis; if(!s) return;
+    s.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='de-DE'; u.rate=.9;
+    const v=s.getVoices().find(v=>v.lang&&v.lang.toLowerCase().startsWith('de')); if(v) u.voice=v;
+    s.speak(u);
+  }catch(e){}
+}
+function ruleText(){
+  const n=task.c.length;
+  const part=cards=>'alle Blöcke, die '+cards.map(([a,v,not])=>PH[a][v][not?1:0]).join(' und ');
+  let t;
+  if(n===1) t='In den Kreis kommen '+part(task.c[0])+'.';
+  else{
+    t=task.c.map((cards,i)=>'In den '+ROPE_NAMES[i]+' Kreis kommen '+part(cards)+'.').join(' ');
+    if(task.lay!=='sep') t+=' Blöcke, die in mehrere Kreise gehören, legst du dahin, wo sich die Kreise überschneiden.';
+  }
+  return t+' Alle anderen bleiben draußen.';
+}
+let actx=null;
+function tone(f,d,type,delay){
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const t=actx.currentTime+(delay||0), o=actx.createOscillator(), g=actx.createGain();
+    o.type=type||'sine'; o.frequency.value=f; g.gain.setValueAtTime(.0001,t);
+    g.gain.exponentialRampToValueAtTime(.18,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t+d+.05);
+  }catch(e){}
+}
+const cheer=()=>{tone(523,.18,'triangle',0);tone(659,.18,'triangle',.12);tone(784,.35,'triangle',.24)};
+const buzz=()=>{tone(220,.22,'sine',0);tone(196,.28,'sine',.16)};
+const tick=()=>tone(880,.05,'sine',0);
+
+let toastT=null;
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600)}
+
+/* ---------- Ziehen ---------- */
+const drags=new Map();
+function toSvg(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())}
+svg.addEventListener('pointerdown',e=>{
+  const card=e.target.closest('.card');
+  if(card){const c=task.c[+card.dataset.i][+card.dataset.j];say(PH[c[0]][c[1]][c[2]?3:2]);return}
+  const g=e.target.closest('.block'); if(!g) return;
+  e.preventDefault();
+  const b=g._b, p=toSvg(e);
+  drags.set(e.pointerId,{b,dx:b.x-p.x,dy:b.y-p.y});
+  try{svg.setPointerCapture(e.pointerId)}catch(_){}
+  g.classList.remove('wrong','hint'); g.classList.add('dragging'); lB.appendChild(g);
+});
+svg.addEventListener('pointermove',e=>{
+  const d=drags.get(e.pointerId); if(!d) return;
+  const p=toSvg(e);
+  d.b.x=Math.min(W-28,Math.max(28,p.x+d.dx)); d.b.y=Math.min(H-28,Math.max(28,p.y+d.dy)); place(d.b);
+});
+function endDrag(e){const d=drags.get(e.pointerId); if(!d) return; d.b.el.classList.remove('dragging'); drags.delete(e.pointerId); tick()}
+svg.addEventListener('pointerup',endDrag); svg.addEventListener('pointercancel',endDrag);
+
+/* ---------- Prüfen ---------- */
+function wrongBlocks(){
+  const L=LAYOUTS[task.lay];
+  return blocks.filter(b=>task.c.some((cards,i)=>{
+    const c=L.circles[i], inside=Math.hypot(b.x-c.x,b.y-c.y)<c.r;
+    return inside!==matches(b,cards);
+  }));
+}
+$('check').onclick=()=>{
+  blocks.forEach(b=>b.el.classList.remove('wrong','hint'));
+  const w=wrongBlocks();
+  if(!w.length){
+    cheer();
+    if(levelIdx>=0){done.add(levelIdx);store.set('lb-done',[...done])}
+    $('next').textContent=levelIdx===-1?'Neue Zufallsaufgabe 🎲':(levelIdx===LEVELS.length-1?'Zufallsaufgaben 🎲':'Nächste Aufgabe ▶');
+    $('win').hidden=false; renderLevels(); return;
+  }
+  buzz();
+  w.forEach(b=>{void b.el.getBoundingClientRect();b.el.classList.add('wrong')});
+  toast(w.length===1?'Ein Block liegt noch falsch.':w.length+' Blöcke liegen noch falsch.');
+};
+$('hint').onclick=()=>{
+  blocks.forEach(b=>b.el.classList.remove('hint'));
+  const w=wrongBlocks();
+  if(!w.length){toast('Sieht gut aus. Tippe auf ✓');return}
+  const b=pick(w); lB.appendChild(b.el); b.el.classList.add('hint');
+  setTimeout(()=>b.el.classList.remove('hint'),2200);
+};
+$('hear').onclick=()=>say(ruleText());
+$('shuffle').onclick=()=>render();
+$('again').onclick=()=>{$('win').hidden=true;render()};
+$('next').onclick=()=>{
+  if(levelIdx===-1||levelIdx===LEVELS.length-1) goLevel(-1); else goLevel(levelIdx+1);
+};
+$('help').onclick=()=>{$('helpBox').hidden=false};
+$('helpClose').onclick=()=>{$('helpBox').hidden=true;store.set('lb-seen',1)};
+if('speechSynthesis' in window){try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{}}catch(e){}}
+
+goLevel(levelIdx);
+if(!store.get('lb-seen',0)) $('helpBox').hidden=false;
+})();
+</script>
+</body>
+</html>
