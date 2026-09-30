@@ -97,7 +97,11 @@ svg#field{position:absolute;inset:0;width:100%;height:100%;touch-action:none;dis
 .overlay{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:center;justify-content:center;padding:20px;z-index:5}
 .overlay[hidden]{display:none}
 .panel{background:var(--paper);color:#1d2b22;border-radius:22px;padding:28px 30px;max-width:560px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.panel{max-height:calc(100% - 20px);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .panel h2{margin:.2em 0 .4em;font-size:30px}
+.why{margin-top:16px;padding:14px 18px;border-left:5px solid #9a6b3a;background:#f3ecdc;border-radius:0 12px 12px 0;text-align:left}
+.why h3{margin:0 0 .2em;font-size:20px}
+.why p{margin:.3em 0}
 .panel p{font-size:18px;line-height:1.5;margin:.5em 0;text-align:left}
 .stars{font-size:64px;letter-spacing:6px}
 .panel .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
@@ -148,6 +152,10 @@ svg#field{position:absolute;inset:0;width:100%;height:100%;touch-action:none;dis
     <p>Durchgestrichene Kärtchen bedeuten „nicht“. Stehen zwei Kärtchen an einem Kreis, muss beides stimmen. Blöcke, die in zwei Kreise gehören, kommen in die Mitte, wo sich die Kreise überschneiden.</p>
     <p>Alle anderen Blöcke bleiben draußen liegen. Mit ✓ prüft das Kind selbst; falsch liegende Blöcke wackeln.</p>
     <p>Merkmale: 3 Farben, 4 Formen, groß oder klein, dick oder dünn. Die Würfel-Taste erzeugt Zufallsaufgaben. Am besten das iPad quer halten.</p>
+    <div class="why">
+      <h3>Warum diese Übung?</h3>
+      <p>„Rechnen“ und „Mathematik“ sind zwei verschiedene Dinge. Die eigentliche Mathematik besteht aus Strukturen, Beziehungen, Logik und Beweisen, und die Mengenlehre ist tatsächlich ihr Fundament. Ein Kind, das schon früh Freude daran hat, warum etwas zusammengehört, bringt genau die Denkweise mit, die für die höhere Mathematik zählt.</p>
+    </div>
     <div class="row"><button class="btn go" id="helpClose">Los geht's</button></div>
   </div>
 </div>
